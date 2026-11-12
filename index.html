@@ -115,8 +115,6 @@ select.per{font:600 13.5px var(--f);color:var(--txt);background:var(--surface);b
 .leaflet-container{background:transparent!important;font-family:var(--f)}
 .leg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--txt-3);font-weight:600;margin-top:6px}
 .leg .bar{display:flex;gap:2px}.leg .bar i{width:22px;height:8px;border-radius:2px}
-.norm{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--txt-2);cursor:pointer;user-select:none}
-.norm input{accent-color:var(--brand);width:15px;height:15px}
 
 /* listas com barra */
 .lst{list-style:none}
@@ -152,9 +150,15 @@ footer .fi .sp{flex:1}
 .sk .tile .vl{background:var(--c2)}
 .sk #evo,.sk #yr,.sk #st,.sk #pg,.sk #map{min-height:200px;border-radius:8px;background:var(--surface-2);animation:skp 1.4s ease-in-out infinite}
 @keyframes skp{50%{opacity:.55}}
+.nota{display:none;margin:-4px 0 18px;padding:12px 14px;border-radius:8px;background:var(--surface-2);border-left:4px solid var(--brand);color:var(--txt-2);font-size:13.5px;font-weight:600;line-height:1.5}
+.nota b{color:var(--txt)}
+.yr-nota{margin:12px 0 0;font-size:12px;font-weight:600;color:var(--txt-3);line-height:1.5}
+.sem-ga .ga{display:none}
+.sem-ga .r-2{grid-template-columns:1fr}
 .err{display:none;margin:16px 0;padding:12px 14px;border-radius:8px;background:color-mix(in srgb,var(--down) 12%,var(--surface));color:var(--txt);font-weight:600}
 .empty{color:var(--txt-3);font-size:13px;padding:20px 0;text-align:center}
-.tip{position:fixed;pointer-events:none;background:#212529;color:#fff;font-size:12px;font-weight:600;padding:6px 9px;border-radius:6px;z-index:200;display:none}
+.tip{position:fixed;pointer-events:none;background:#212529;color:#fff;font-size:12px;font-weight:600;padding:6px 9px;border-radius:6px;z-index:1000;display:none}
+#map{isolation:isolate;z-index:0}
 
 @media (max-width:980px){
   .r-2,.r-det{grid-template-columns:1fr}
@@ -223,8 +227,9 @@ footer .fi .sp{flex:1}
     <div class="tile db"><div class="tp"><div class="lb">Downloads da base<span class="dsk"> de dados</span></div><div class="vl" id="v-db">—</div></div><div class="bt"><svg class="spk" id="k-db" preserveAspectRatio="none" aria-hidden="true"></svg></div></div>
     <div class="tile dr"><div class="tp"><div class="lb">Downloads de relatórios</div><div class="vl" id="v-dr">—</div></div><div class="bt"><svg class="spk" id="k-dr" preserveAspectRatio="none" aria-hidden="true"></svg></div></div>
   </section>
+  <p class="nota" id="nota"></p>
 
-  <section class="row r-evo">
+  <section class="row r-evo ga">
     <div class="card">
       <div class="ch"><h2>Evolução</h2><span class="sub" id="evo-sub"></span><span class="sp"></span>
         <div class="seg" id="evo-seg"><button data-v="pv" class="on">Visualizações</button><button data-v="dl">Downloads</button></div></div>
@@ -237,9 +242,8 @@ footer .fi .sp{flex:1}
       <div class="ch"><h2>Histórico anual</h2></div>
       <div id="yr"></div>
     </div>
-    <div class="card">
-      <div class="ch"><h2>Acessos por estado</h2><span class="sub" id="geo-sub">visualizações</span><span class="sp"></span>
-        <label class="norm" id="norm-w" style="display:none"><input type="checkbox" id="norm"> por 10 mil hab.</label></div>
+    <div class="card ga">
+      <div class="ch"><h2>Acessos por estado</h2><span class="sub" id="geo-sub">visualizações</span><span class="sp"></span></div>
       <div class="geo">
         <div><div id="map"></div><div class="leg" id="leg"></div></div>
         <div><ul class="lst" id="st"></ul><button class="more-btn" id="st-mais" type="button"></button></div>
@@ -247,14 +251,14 @@ footer .fi .sp{flex:1}
     </div>
   </section>
 
-  <section class="row r-evo">
+  <section class="row r-evo ga">
     <div class="card">
       <div class="ch"><h2>Páginas mais vistas</h2><span class="sub">por seção do site</span></div>
       <ul class="lst" id="pg"></ul>
     </div>
   </section>
 
-  <details class="more">
+  <details class="more ga">
     <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>Mais detalhes</summary>
     <div class="mini" id="mini"></div>
     <section class="row r-det">
@@ -283,6 +287,8 @@ var D = {}, POP = null, MONTHS = [], DAYS = {}, EVO = 'pv', THEME = 'light', ST_
 function mob(){return window.matchMedia('(max-width:600px)').matches;}
 var MES = ['','jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 var MES_L = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+/* 2024: o site ainda não tinha Google Analytics; totais anuais fixos */
+var ANO_SEM_GA = '2024', H24 = {'Visualizações de Página':314500, 'Downloads da Base':619, 'Downloads de Relatórios':1664};
 var PV = 'Visualizações de Página', DB = 'Downloads da Base', DR = 'Downloads de Relatórios', DT = 'Data de Referência';
 
 /* ---------- utilidades ---------- */
@@ -313,35 +319,40 @@ function tentar(fn,n){return fn().catch(function(e){if(n<=1)throw e;return new P
 /* ---------- período ---------- */
 function opcoes(){
   var last=MONTHS[MONTHS.length-1],anoAtual=last.slice(0,4),anos={};
-  MONTHS.forEach(function(m){anos[m.slice(0,4)]=1;});
-  var o=[['12m','Últimos 12 meses']];
+  MONTHS.forEach(function(m){anos[m.slice(0,4)]=1;});anos[ANO_SEM_GA]=1;
+  var o=[];
   Object.keys(anos).sort().reverse().forEach(function(a){o.push(['a'+a,a===anoAtual?a+' (até agora)':a]);});
   o.push(['all','Todo o período']);
-  o.push(['-','──────────']);
-  MONTHS.slice().reverse().forEach(function(m){o.push(['m'+m,lblM(m)]);});
   return o;
 }
 function mesesSel(){
-  var v=$('per').value||'12m';
+  var v=$('per').value||('a'+MONTHS[MONTHS.length-1].slice(0,4));
   if(v==='all')return MONTHS.slice();
-  if(v==='12m')return MONTHS.slice(-12);
+  if(v==='a'+ANO_SEM_GA)return [];
   if(v[0]==='a')return MONTHS.filter(function(m){return m.slice(0,4)===v.slice(1);});
-  if(v[0]==='m')return [v.slice(1)];
   return MONTHS.slice(-12);
 }
 function emMeses(rows,ms){return rows.filter(function(r){return ms.indexOf(String(r[DT]).slice(0,7))>=0;});}
 function menosAno(d){return (+d.slice(0,4)-1)+d.slice(4);}
 
 /* ---------- render ---------- */
+function v24(k){var a=(D['Anual']||[]).filter(function(r){return String(r['Ano'])===ANO_SEM_GA;})[0];return a&&+a[k]?+a[k]:H24[k];}
 function render(){
-  var ms=mesesSel(),vg=emMeses(D['Visão Geral'],ms);
-  hero(ms,vg);evolucao(ms,vg);anual();estados(ms);paginas(ms);detalhes(ms,vg);
+  var per=$('per').value,so24=per==='a'+ANO_SEM_GA,ms=mesesSel(),vg=emMeses(D['Visão Geral'],ms);
+  document.body.classList.toggle('sem-ga',so24);
+  var n=$('nota');
+  if(so24)n.innerHTML='<b>Em 2024 o site ainda não tinha Google Analytics.</b> Por isso esse ano aparece só com os totais anuais, sem detalhe por mês, estado ou página.';
+  else if(per==='all')n.innerHTML='Inclui os totais de 2024, quando o site ainda não tinha Google Analytics. Os gráficos, o mapa e as páginas começam em 2025.';
+  n.style.display=(so24||per==='all')?'block':'none';
+  hero(ms,vg,so24?'so':per==='all'?'soma':'');anual();
+  if(so24)return;
+  evolucao(ms,vg);estados(ms);paginas(ms);detalhes(ms,vg);
 }
 
-function hero(ms,vg){
+function hero(ms,vg,m24){
   [['pv',PV],['db',DB],['dr',DR]].forEach(function(p){
-    $('v-'+p[0]).textContent=fmt(sum(vg,p[1]));
-    spark('k-'+p[0],serie(ms,vg,p[1]).y);
+    $('v-'+p[0]).textContent=fmt(m24==='so'?v24(p[1]):sum(vg,p[1])+(m24==='soma'?v24(p[1]):0));
+    spark('k-'+p[0],m24==='so'?[]:serie(ms,vg,p[1]).y);
   });
 }
 function serie(ms,vg,k){
@@ -387,10 +398,12 @@ function evolucao(ms,vg){
 }
 
 function anual(){
-  var A=(D['Anual']||[]).slice().sort(function(a,b){return a['Ano']-b['Ano'];});
+  var A=(D['Anual']||[]).slice();
+  if(!A.some(function(r){return String(r['Ano'])===ANO_SEM_GA;})){var r24={'Ano':+ANO_SEM_GA};Object.keys(H24).forEach(function(k){r24[k]=H24[k];});A.push(r24);}
+  A.sort(function(a,b){return a['Ano']-b['Ano'];});
   if(!A.length){$('yr').innerHTML='<div class="empty">Sem dados</div>';return;}
   var M=[[PV,'Visualizações','--s-pv'],[DB,'Downloads da base','--s-db'],[DR,'Downloads de relatórios','--s-dr']];
-  var h='<table class="yr"><thead><tr><th></th>'+A.map(function(a){return '<th>'+a['Ano']+(a['Até']?'<small>até '+String(a['Até']).slice(8,10)+'/'+String(a['Até']).slice(5,7)+'</small>':'')+'</th>';}).join('')+'</tr></thead><tbody>';
+  var h='<table class="yr"><thead><tr><th></th>'+A.map(function(a){return '<th>'+a['Ano']+(String(a['Ano'])===ANO_SEM_GA?'<small>sem Analytics*</small>':'')+(a['Até']?'<small>até '+String(a['Até']).slice(8,10)+'/'+String(a['Até']).slice(5,7)+'</small>':'')+'</th>';}).join('')+'</tr></thead><tbody>';
   M.forEach(function(m){
     h+='<tr><td><span class="sw" style="background:var('+m[2]+')"></span>'+m[1]+'</td>';
     A.forEach(function(a,i){var v=+a[m[0]]||0,g='';
@@ -398,7 +411,7 @@ function anual(){
       h+='<td data-y="'+a['Ano']+(a['Até']?' (até '+String(a['Até']).slice(8,10)+'/'+String(a['Até']).slice(5,7)+')':'')+'">'+fmtC(v)+g+'</td>';});
     h+='</tr>';
   });
-  $('yr').innerHTML=h+'</tbody></table>';
+  $('yr').innerHTML=h+'</tbody></table>'+(A.some(function(a){return String(a['Ano'])===ANO_SEM_GA;})?'<p class="yr-nota">* Em 2024 o site ainda não tinha Google Analytics. Os números são os totais do ano.</p>':'');
 }
 
 /* ---------- estados ---------- */
@@ -406,18 +419,17 @@ var _map=null,_geo=null,_vals={},_tipT=null;
 function rampa(){return THEME==='dark'?['#2A3A2A','#46582E','#6E8432','#9DB447','#C9DA7A']:['#F1F4DF','#D6DE9F','#B6C367','#8FA63E','#5E7524'];}
 function cor(v,mx){if(!v||!mx)return cssv('--map-empty');var t=v/mx,R=rampa();return t<.05?R[0]:t<.15?R[1]:t<.35?R[2]:t<.65?R[3]:R[4];}
 function estados(ms){
-  var norm=$('norm').checked&&POP,rows=emMeses(D['Geo Diário']||[],ms),v={};
+  var rows=emMeses(D['Geo Diário']||[],ms),v={};
   rows.forEach(function(r){var m=ESTADO_MAP[String(r['Estado / Região']||'')];if(m)v[m.sigla]=(v[m.sigla]||0)+(+r[PV]||0);});
-  if(norm)Object.keys(v).forEach(function(s){v[s]=POP[s]?v[s]/POP[s]*1e4:0;});
-  _vals=v;$('geo-sub').textContent=norm?'visualizações por 10 mil habitantes':'visualizações';
+  _vals=v;
   var mx=Math.max.apply(null,Object.values(v).concat([1]));
-  var f=function(n){return norm?(Math.round(n*10)/10).toLocaleString('pt-BR'):fmt(n);};
+  var f=fmt;
   if(!_map){
     _map=L.map('map',{zoomSnap:0.05,zoomControl:false,attributionControl:false,scrollWheelZoom:false,dragging:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false});
     _geo=L.geoJSON(GEO,{onEachFeature:function(ft,ly){var s=ft.properties.sigla;
-      ly.on('mousemove',function(e){var t=$('tip');t.innerHTML='<b>'+NOME_UF[s]+'</b><br>'+f(_vals[s]||0)+($('norm').checked&&POP?' por 10 mil hab.':' visualizações');t.style.display='block';t.style.left=(e.originalEvent.clientX+14)+'px';t.style.top=(e.originalEvent.clientY-10)+'px';ly.setStyle({weight:2,color:cssv('--txt')});});
+      ly.on('mousemove',function(e){var t=$('tip');t.innerHTML='<b>'+NOME_UF[s]+'</b><br>'+f(_vals[s]||0)+' visualizações';t.style.display='block';t.style.left=(e.originalEvent.clientX+14)+'px';t.style.top=(e.originalEvent.clientY-10)+'px';ly.setStyle({weight:2,color:cssv('--txt')});});
       ly.on('mouseout',function(){$('tip').style.display='none';_geo.resetStyle(ly);estiloMapa(mx);});
-      ly.on('click',function(e){var t=$('tip');t.innerHTML='<b>'+NOME_UF[s]+'</b><br>'+f(_vals[s]||0)+($('norm').checked&&POP?' por 10 mil hab.':' visualizações');t.style.display='block';
+      ly.on('click',function(e){var t=$('tip');t.innerHTML='<b>'+NOME_UF[s]+'</b><br>'+f(_vals[s]||0)+' visualizações';t.style.display='block';
         t.style.left=Math.min(e.originalEvent.clientX+10,innerWidth-170)+'px';t.style.top=(e.originalEvent.clientY-50)+'px';clearTimeout(_tipT);_tipT=setTimeout(function(){t.style.display='none';},2500);});}}).addTo(_map);
     _map.fitBounds(_geo.getBounds(),{padding:[2,2]});
     addEventListener('resize',function(){_map.invalidateSize();_map.fitBounds(_geo.getBounds(),{padding:[4,4]});});
@@ -504,7 +516,6 @@ function montar(d){
     MONTHS=Object.keys(D['Visão Geral'].reduce(function(o,r){o[String(r[DT]).slice(0,7)]=1;return o;},{})).sort();
     $('per').innerHTML=opcoes().map(function(o){return '<option value="'+o[0]+'"'+(o[0]==='-'?' disabled':'')+'>'+o[1]+'</option>';}).join('');
     $('per').value='a'+MONTHS[MONTHS.length-1].slice(0,4);$('per').onchange=render;
-    $('norm').onchange=function(){estados(mesesSel());};
     document.querySelectorAll('#evo-seg button').forEach(function(b){b.onclick=function(){EVO=b.dataset.v;
       document.querySelectorAll('#evo-seg button').forEach(function(x){x.classList.toggle('on',x===b);});evolucao(mesesSel(),emMeses(D['Visão Geral'],mesesSel()));};});
     $('st-mais').onclick=function(){ST_TODOS=!ST_TODOS;estados(mesesSel());};
@@ -521,7 +532,6 @@ function iniciar(){
     $('upd').textContent='Atualizado em '+new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }).catch(function(){if(!_pronto){var e=$('err');e.textContent='Não foi possível carregar os dados agora. Tente novamente em alguns instantes.';e.style.display='block';}else $('upd').textContent='';})
   .finally(function(){clearTimeout(skT);document.body.classList.remove('sk');});
-  get(API+'?modo=pop').then(function(p){if(p&&p.SP){POP=p;$('norm-w').style.display='inline-flex';}}).catch(function(){});
   aoVivo();setInterval(aoVivo,60000);
 }
 var _m=mob();addEventListener('resize',function(){if(mob()!==_m){_m=mob();if(_pronto)render();}});
